@@ -26,9 +26,49 @@ export default function Hero() {
                     transition={{ duration: 0.8, delay: 0.1 }}
                     className="text-5xl md:text-7xl lg:text-8xl font-bold leading-[1.05] tracking-tight max-w-5xl mb-8 md:mb-12"
                 >
-                    AI Engineer <br />
-                    helping your <span className="italic-serif text-foreground/90">ideas</span> <br />
-                    scale and <span className="italic-serif text-foreground/90">thrive.</span>
+                    Fullstack Dev & <br />
+                    AI Engineer helping <br />
+                    bring your ideas <br />
+                    to <span className="relative inline-block">
+                        <span className="playful-italic text-foreground/90 relative z-10">life.</span>
+                        {/* AI Sparkles */}
+                        <motion.span
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{
+                                scale: [0, 1.2, 0.8, 1.1, 0.9, 1],
+                                opacity: [0, 1, 0.5, 1, 0.6, 0.8],
+                                rotate: [0, 10, -10, 5, 0]
+                            }}
+                            transition={{
+                                duration: 2,
+                                delay: 1,
+                                repeat: Infinity,
+                                repeatType: "reverse",
+                                ease: "easeInOut"
+                            }}
+                            className="absolute -top-1 -right-2 text-2xl pointer-events-none select-none"
+                        >
+                            ✨
+                        </motion.span>
+                        <motion.span
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{
+                                scale: [0, 1, 0.7, 1.1, 0.8, 1],
+                                opacity: [0, 0.8, 0.4, 0.9, 0.5, 0.7],
+                                rotate: [0, -15, 15, -5, 0]
+                            }}
+                            transition={{
+                                duration: 2.5,
+                                delay: 1.5,
+                                repeat: Infinity,
+                                repeatType: "reverse",
+                                ease: "easeInOut"
+                            }}
+                            className="absolute -bottom-4 -left-6 text-xl pointer-events-none select-none"
+                        >
+                            ✨
+                        </motion.span>
+                    </span>
                 </motion.h1>
 
                 <motion.div
