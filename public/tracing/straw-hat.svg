@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400">
+  <defs>
+    <filter id="ink"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="9"/><feDisplacementMap in="SourceGraphic" scale="2.4"/></filter>
+  </defs>
+  <g fill="none" stroke="#1d1d1b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" filter="url(#ink)">
+    <!-- brim -->
+    <path d="M26 252 C 24 222, 120 208, 150 208 C 186 208, 276 220, 274 250 C 272 280, 196 296, 150 296 C 100 296, 28 282, 26 252 Z"/>
+    <!-- crown -->
+    <path d="M86 242 C 80 190, 104 148, 150 146 C 196 148, 220 190, 214 242"/>
+    <path d="M86 242 Q 150 268 214 242"/>
+    <!-- band -->
+    <path d="M88 218 Q 150 244 212 218"/>
+    <path d="M96 222 L 100 238 M108 226 L 112 244 M120 230 L 124 248 M132 232 L 136 250 M144 234 L 148 252 M156 234 L 160 252 M168 233 L 172 250 M180 230 L 184 247 M192 227 L 196 243 M204 222 L 206 236" stroke-width="1.6"/>
+    <!-- crown stitching -->
+    <path d="M100 198 Q 150 178 200 198" stroke-width="1.2" stroke-dasharray="5 6"/>
+    <path d="M112 170 Q 150 156 188 170" stroke-width="1.2" stroke-dasharray="5 6"/>
+    <!-- straw weave on the brim -->
+    <path d="M44 258 L 60 262 M52 238 L 68 244 M70 274 L 86 276 M236 240 L 252 236 M232 262 L 250 260 M214 278 L 230 276 M110 284 L 126 286 M172 286 L 190 284" stroke-width="1.3"/>
+    <path d="M40 246 Q 54 252 70 254 M228 252 Q 246 250 260 246 M100 274 Q 150 282 200 274" stroke-width="1.1" stroke-dasharray="3 5"/>
+    <!-- frayed edge -->
+    <path d="M34 266 L 28 272 M60 282 L 56 290 M96 292 L 94 300 M206 292 L 208 300 M244 280 L 250 288 M268 262 L 276 266" stroke-width="1.3"/>
+    <!-- shadow under the brim -->
+    <path d="M70 314 Q 150 330 232 314" stroke-width="1.4"/>
+    <path d="M96 318 L 104 312 M120 322 L 128 315 M146 324 L 154 316 M172 323 L 180 316 M198 320 L 206 313" stroke-width="1"/>
+  </g>
+</svg>
