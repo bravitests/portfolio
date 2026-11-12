@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, ClipboardPaste, Download, Link2, Sticker } from "lucide-react";
+import { ArrowRight, ClipboardPaste, Link2, Sticker } from "lucide-react";
 import { Input } from "@/components/motion/input";
 import { StatefulButton, type ButtonState } from "@/components/motion/button/stateful";
 import { Button } from "@/components/motion/button/base";
-import { useNotify, type StickerSeed } from "./DnTools";
+import type { StickerSeed } from "./DnTools";
+import DownloadButton from "./DownloadButton";
 
 export type ResolvedItem = {
   type: "video" | "gif" | "image";
@@ -47,6 +48,22 @@ function itemLabel(it: ResolvedItem) {
   return parts.join(" · ");
 }
 
+const shortSide = (it: ResolvedItem) => (it.width && it.height ? Math.min(it.width, it.height) : 0);
+
+// Recommended download: the best variant at or under 1080p (4K X uploads are 30-40 MB).
+function recommended(group: ResolvedItem[]) {
+  const sized = group.filter(shortSide);
+  if (!sized.length) return group[0];
+  return [...sized].filter((i) => shortSide(i) <= 1080).sort((a, b) => shortSide(b) - shortSide(a))[0] ?? sized.at(-1)!;
+}
+
+// Lightest variant that still looks fine in the inline preview.
+function previewItem(group: ResolvedItem[]) {
+  const sized = group.filter(shortSide);
+  if (!sized.length) return group[0];
+  return [...sized].filter((i) => shortSide(i) <= 720).sort((a, b) => shortSide(b) - shortSide(a))[0] ?? recommended(group);
+}
+
 // Group variants of the same media: X returns several bitrates per video.
 function groupItems(items: ResolvedItem[]) {
   const groups: ResolvedItem[][] = [];
@@ -64,7 +81,6 @@ export default function Downloader({ onMakeSticker }: { onMakeSticker: (s: Stick
   const [state, setState] = useState<ButtonState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [media, setMedia] = useState<ResolvedMedia | null>(null);
-  const notify = useNotify();
 
   const submit = async (value = url) => {
     if (!value.trim()) return;
@@ -95,7 +111,8 @@ export default function Downloader({ onMakeSticker }: { onMakeSticker: (s: Stick
   };
 
   const groups = media ? groupItems(media.items) : [];
-  const preview = media?.items.find((i) => i.type !== "image") ?? media?.items[0];
+  const previewGroup = groups.find((g) => g[0].type !== "image") ?? groups[0];
+  const preview = previewGroup ? previewItem(previewGroup) : undefined;
 
   return (
     <div className="space-y-6">
@@ -178,20 +195,12 @@ export default function Downloader({ onMakeSticker }: { onMakeSticker: (s: Stick
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  {group.map((it, i) => (
-                    <a
-                      key={it.src}
-                      href={it.src}
-                      download={it.name}
-                      onClick={() => notify({ title: "Download started", description: it.name, status: "success" })}
-                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all active:scale-[0.98] ${
-                        i === 0 ? "bg-accent text-accent-foreground hover:brightness-95" : "border hover:bg-secondary"
-                      }`}
-                    >
-                      <Download className="size-4" />
-                      {itemLabel(it)}
-                    </a>
-                  ))}
+                  {(() => {
+                    const best = recommended(group);
+                    return [best, ...group.filter((it) => it !== best)].map((it) => (
+                      <DownloadButton key={it.src} src={it.src} name={it.name} label={itemLabel(it)} primary={it === best} />
+                    ));
+                  })()}
                   {group[0].type !== "video" || media.platform === "x" ? (
                     <Button
                       variant="outline"
