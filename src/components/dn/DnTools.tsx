@@ -9,7 +9,7 @@ import Downloader from "./Downloader";
 import StickerMaker from "./StickerMaker";
 
 export type Tool = "download" | "sticker";
-export type StickerSeed = { src: string; type: string; name: string } | null;
+export type StickerSeed = { src: string; direct?: string; type: string; name: string } | null;
 
 const NotifyContext = createContext<(t: ToastInput) => void>(() => {});
 export const useNotify = () => useContext(NotifyContext);

@@ -16,6 +16,8 @@ export type ResolvedItem = {
   label?: string;
   name: string;
   src: string;
+  // Platform CDN URL the browser can fetch directly (X, Instagram).
+  direct?: string;
 };
 
 export type ResolvedMedia = {
@@ -164,7 +166,7 @@ export default function Downloader({ onMakeSticker }: { onMakeSticker: (s: Stick
         <article className="animate-slide-up overflow-hidden rounded-2xl border bg-card shadow-sm lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
           {preview && preview.type !== "image" ? (
             <video
-              src={preview.src}
+              src={preview.direct ?? preview.src}
               poster={media.thumbnail}
               controls
               playsInline
@@ -198,7 +200,7 @@ export default function Downloader({ onMakeSticker }: { onMakeSticker: (s: Stick
                   {(() => {
                     const best = recommended(group);
                     return [best, ...group.filter((it) => it !== best)].map((it) => (
-                      <DownloadButton key={it.src} src={it.src} name={it.name} label={itemLabel(it)} primary={it === best} />
+                      <DownloadButton key={it.src} src={it.src} direct={it.direct} name={it.name} label={itemLabel(it)} primary={it === best} />
                     ));
                   })()}
                   {group[0].type !== "video" || media.platform === "x" ? (
@@ -207,7 +209,7 @@ export default function Downloader({ onMakeSticker }: { onMakeSticker: (s: Stick
                       onClick={() => {
                         // Smallest variant is plenty for a 512px sticker.
                         const small = [...group].sort((a, b) => (a.bitrate ?? 0) - (b.bitrate ?? 0))[0];
-                        onMakeSticker({ src: small.src, type: small.type === "image" ? "image/jpeg" : "video/mp4", name: small.name });
+                        onMakeSticker({ src: small.src, direct: small.direct, type: small.type === "image" ? "image/jpeg" : "video/mp4", name: small.name });
                       }}
                       className="font-semibold"
                     >

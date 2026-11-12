@@ -434,6 +434,20 @@ const ALLOWED = [
   /(^|\.)fbcdn\.net$/,
 ];
 
+// CDNs that send CORS headers for our origin, so browsers can download from them directly
+// and skip the file proxy (saves Vercel Fast Origin Transfer). TikTok URLs need the
+// cookies we got server-side, so they always go through the proxy.
+const DIRECT = [/(^|\.)twimg\.com$/, /(^|\.)cdninstagram\.com$/, /(^|\.)fbcdn\.net$/];
+
+export function isDirectHost(u: string) {
+  try {
+    const url = new URL(u);
+    return url.protocol === "https:" && DIRECT.some((re) => re.test(url.hostname));
+  } catch {
+    return false;
+  }
+}
+
 export function isAllowedMediaHost(u: string) {
   try {
     const url = new URL(u);

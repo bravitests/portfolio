@@ -14,6 +14,7 @@ import { TextShimmer } from "@/components/motion/text-shimmer";
 import { ANIMATED_LIMIT, MAX_SECONDS, STATIC_LIMIT, STICKER_SIZE, drawFrame, loadFromBlob, makeSticker, type RenderOptions, type Source, type StickerResult } from "@/lib/dn/sticker";
 import { zip } from "@/lib/dn/zip";
 import { resolveLink } from "./Downloader";
+import { fetchMedia } from "@/lib/dn/fetch-media";
 import { useNotify, type StickerSeed } from "./DnTools";
 
 const DEFAULTS: RenderOptions = { fit: "contain", padding: 16, caption: "", captionPosition: "bottom", outline: false };
@@ -64,9 +65,9 @@ export default function StickerMaker({ seed, onSeedUsed }: { seed: StickerSeed; 
   }, []);
 
   const fromUrl = useCallback(
-    async (src: string, typeHint?: string) => {
+    async (item: { src: string; direct?: string }, typeHint?: string) => {
       setStatus("Fetching media…");
-      const res = await fetch(src);
+      const res = await fetchMedia(item);
       if (!res.ok) throw new Error("Couldn't download that media. Paste the link again.");
       const raw = await res.blob();
       const type = raw.type && raw.type !== "application/octet-stream" ? raw.type : (typeHint ?? "video/mp4");
@@ -80,7 +81,7 @@ export default function StickerMaker({ seed, onSeedUsed }: { seed: StickerSeed; 
   // Seed from the downloader's "Make sticker" button.
   useEffect(() => {
     if (!seed) return;
-    fromUrl(seed.src, seed.type).catch((e) => setError(e.message));
+    fromUrl(seed, seed.type).catch((e) => setError(e.message));
     onSeedUsed();
   }, [seed, fromUrl, onSeedUsed]);
 
@@ -113,7 +114,7 @@ export default function StickerMaker({ seed, onSeedUsed }: { seed: StickerSeed; 
         media.items.filter((i) => i.type === "image")[0] ??
         media.items.filter((i) => i.type === "video").sort((a, b) => (a.bitrate ?? 0) - (b.bitrate ?? 0))[0];
       if (!pick) throw new Error("No GIF, image or video found at that link.");
-      await fromUrl(pick.src, pick.type === "image" ? "image/jpeg" : "video/mp4");
+      await fromUrl(pick, pick.type === "image" ? "image/jpeg" : "video/mp4");
       setLinkState("success");
     } catch (e) {
       setError((e as Error).message);

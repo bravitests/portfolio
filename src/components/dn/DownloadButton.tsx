@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Check, Download, Loader2, Share, X as XIcon } from "lucide-react";
 import { useNotify } from "./DnTools";
+import { fetchMedia } from "@/lib/dn/fetch-media";
 
 // Browsers that ignore <a download> or hide the result: iOS (files land in
 // Files → Downloads, never Photos) and in-app webviews (WhatsApp, Instagram,
@@ -31,7 +32,7 @@ const mb = (n: number) => `${(n / 1024 / 1024).toFixed(n > 10 * 1024 * 1024 ? 0 
 
 type State = { kind: "idle" } | { kind: "loading"; loaded: number; total: number } | { kind: "ready"; file: File } | { kind: "done" } | { kind: "error" };
 
-export default function DownloadButton({ src, name, label, primary }: { src: string; name: string; label: string; primary?: boolean }) {
+export default function DownloadButton({ src, direct, name, label, primary }: { src: string; direct?: string; name: string; label: string; primary?: boolean }) {
   const [state, setState] = useState<State>({ kind: "idle" });
   const abortRef = useRef<AbortController | null>(null);
   const notify = useNotify();
@@ -59,10 +60,11 @@ export default function DownloadButton({ src, name, label, primary }: { src: str
     abortRef.current = ctrl;
     setState({ kind: "loading", loaded: 0, total: 0 });
     try {
-      const res = await fetch(src, { signal: ctrl.signal });
+      const res = await fetchMedia({ src, direct }, { signal: ctrl.signal });
       if (!res.ok || !res.body) throw new Error(await res.text().catch(() => "Download failed"));
       const total = Number(res.headers.get("content-length")) || 0;
-      const type = res.headers.get("content-type") || (name.endsWith(".jpg") ? "image/jpeg" : "video/mp4");
+      const ct = res.headers.get("content-type");
+      const type = (ct && ct !== "application/octet-stream" ? ct : "") || (name.endsWith(".jpg") ? "image/jpeg" : "video/mp4");
       const reader = res.body.getReader();
       const chunks: Uint8Array[] = [];
       let loaded = 0;

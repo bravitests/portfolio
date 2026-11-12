@@ -1,4 +1,4 @@
-import { resolve, ResolveError } from "@/lib/dn/extract";
+import { isDirectHost, resolve, ResolveError } from "@/lib/dn/extract";
 import { encodeToken } from "@/lib/dn/token";
 
 export const maxDuration = 30;
@@ -34,6 +34,8 @@ export async function POST(request: Request) {
         label: item.label,
         name,
         src: fileUrl(item.url, item.headers, name),
+        // Browser tries this first; src is the fallback.
+        direct: !item.headers && isDirectHost(item.url) ? item.url : undefined,
       };
     });
     return Response.json({
