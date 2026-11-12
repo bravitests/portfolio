@@ -256,11 +256,96 @@ function igItems(node: IgNode): MediaItem[] {
   );
 }
 
+// Newer "xig" media shape, used by the logged-out post page.
+type IgCandidate = { url: string; width?: number; height?: number };
+type IgProduct = {
+  user?: { username?: string };
+  caption?: { text?: string } | null;
+  original_width?: number;
+  original_height?: number;
+  video_versions?: IgCandidate[] | null;
+  image_versions2?: { candidates?: IgCandidate[] };
+  carousel_media?: IgProduct[] | null;
+};
+
+function findKey(obj: unknown, key: string, depth = 0): unknown {
+  if (!obj || typeof obj !== "object" || depth > 40) return;
+  const o = obj as Record<string, unknown>;
+  if (o[key]) return o[key];
+  for (const v of Object.values(o)) {
+    const hit = findKey(v, key, depth + 1);
+    if (hit) return hit;
+  }
+}
+
+function productItems(p: IgProduct): MediaItem[] {
+  return (p.carousel_media?.length ? p.carousel_media : [p]).flatMap<MediaItem>((it) => {
+    const size = { width: it.original_width, height: it.original_height };
+    const video = it.video_versions?.length ? [...it.video_versions].sort((a, b) => (b.width ?? 0) * (b.height ?? 0) - (a.width ?? 0) * (a.height ?? 0))[0] : undefined;
+    if (video) return [{ type: "video", url: video.url, width: video.width ?? size.width, height: video.height ?? size.height }];
+    const img = it.image_versions2?.candidates?.[0];
+    return img ? [{ type: "image", url: img.url, width: img.width ?? size.width, height: img.height ?? size.height }] : [];
+  });
+}
+
+// The logged-out post page ships the media in its Relay prefetch payload
+// (<script data-sjs> → xig_polaris_media.if_not_gated_logged_out). Same source yt-dlp falls back to.
+async function igFromPostPage(code: string): Promise<Resolved | null> {
+  const res = await get(`https://www.instagram.com/p/${code}/`, {
+    headers: { accept: "text/html,application/xhtml+xml,*/*;q=0.8", "sec-fetch-mode": "navigate", "sec-fetch-dest": "document", "sec-fetch-site": "none" },
+    redirect: "manual",
+  });
+  if (res.status !== 200) return null;
+  const html = await res.text();
+  for (const m of html.matchAll(/<script\b[^>]*\bdata-sjs>(\{.+?\})<\/script>/g)) {
+    if (!m[1].includes("xig_polaris_media")) continue;
+    let media: { if_not_gated_logged_out?: IgProduct } | undefined;
+    try {
+      media = findKey(JSON.parse(m[1]), "xig_polaris_media") as typeof media;
+    } catch {
+      continue;
+    }
+    const p = media?.if_not_gated_logged_out;
+    if (!p) continue;
+    const items = productItems(p);
+    if (!items.length) continue;
+    return {
+      platform: "instagram",
+      id: code,
+      title: p.caption?.text?.slice(0, 140),
+      author: p.user?.username ? `@${p.user.username}` : undefined,
+      thumbnail: (p.carousel_media?.[0] ?? p).image_versions2?.candidates?.[0]?.url,
+      items,
+    };
+  }
+  return null;
+}
+
 async function resolveInstagram(url: URL): Promise<Resolved> {
+  // instagram.com/share/<id>/ links redirect to the real post. A browser UA gets HTML instead of the redirect.
+  if (/^\/share\//.test(url.pathname)) {
+    try {
+      const r = await fetch(url, { headers: { "user-agent": "curl/8.5.0" }, redirect: "manual", signal: AbortSignal.timeout(TIMEOUT) });
+      const loc = r.headers.get("location");
+      if (loc) url = new URL(loc, url);
+    } catch {
+      // fall through to the shortcode check
+    }
+  }
   const code = url.pathname.match(/\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/)?.[1];
   if (!code) throw new ResolveError("That Instagram link doesn't point to a post or reel.");
 
-  // 1. Public GraphQL query used by the logged-out web app.
+  // 1. Media embedded in the logged-out post page. Instagram occasionally serves a page without it, so retry once.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const hit = await igFromPostPage(code);
+      if (hit) return hit;
+    } catch {
+      // retry, then try fallbacks
+    }
+  }
+
+  // 2. Public GraphQL query used by the logged-out web app.
   try {
     const body = new URLSearchParams({
       variables: JSON.stringify({ shortcode: code, fetch_tagged_user_count: null, hoisted_comment_id: null, hoisted_reply_id: null }),
@@ -298,7 +383,7 @@ async function resolveInstagram(url: URL): Promise<Resolved> {
     // try fallback
   }
 
-  // 2. The embed page carries the media JSON for public posts.
+  // 3. The embed page carries the media JSON for public posts.
   const res = await get(`https://www.instagram.com/p/${code}/embed/captioned/`, { headers: { accept: "text/html" } });
   const html = await res.text();
   const ctx = html.match(/"contextJSON":"((?:\\.|[^"\\])*)"/)?.[1];
